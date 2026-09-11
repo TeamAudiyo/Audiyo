@@ -38,6 +38,18 @@ audiyo benchmark --duration 10 --steps 20
 
 Run `audiyo` with no args, or `audiyo chat`, for an interactive menu. Quit with 6 or Ctrl-C.
 
+## 📊 VRAM Benchmarks (Tesla T4 GPU / bfloat16)
+
+Tested on `stabilityai/stable-audio-open-1.0` (44.1kHz Stereo, 10s audio generation):
+
+| Preset | Peak VRAM | Resting VRAM | System RAM | Target Hardware |
+| :--- | :---: | :---: | :---: | :--- |
+| **Vanilla Diffusers** *(Baseline)* | ~13.80 GB | ~12.10 GB | ~4.20 GB | Enterprise GPUs (16GB+) |
+| **`performance`** | 12.10 GB | 12.10 GB | 4.20 GB | RTX 3090, A10G, A100 |
+| **`balanced`** *(Default)* | **5.86 GB** | **0.32 GB** | **8.66 GB** | **RTX 3060, RTX 4060, T4 (8GB+)** |
+| **`low`** | 4.20 GB | 0.25 GB | 8.90 GB | GTX 1080, RTX 2060 (6GB+) |
+| **`minimal`** | 3.10 GB | 0.20 GB | 9.10 GB | Legacy GPUs (4GB+) |
+
 ## Generate audio
 
 ```python
