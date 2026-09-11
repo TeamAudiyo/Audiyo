@@ -1,0 +1,12 @@
+{
+  "base_model": "audiyo-testkit-tiny",
+  "rank": 4,
+  "alpha": 4,
+  "target_modules": [
+    "to_q",
+    "to_k",
+    "to_v"
+  ],
+  "audiyo_version": "0.1.0",
+  "license_note": "Adapter derived from stabilityai/stable-audio-open-1.0. Redistribution follows the Stability AI Community License."
+}

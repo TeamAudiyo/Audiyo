@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "audiyo"
+version = "0.1.0"
+description = "Memory-efficient text-to-audio generation and LoRA fine-tuning for Stable Audio Open"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Audiyo contributors" }]
+keywords = ["audio", "text-to-audio", "diffusion", "lora", "stable-audio"]
+dependencies = [
+  "torch>=2.0",
+  "diffusers>=0.30",
+  "transformers>=4.38",
+  "huggingface_hub>=0.20",
+  "safetensors>=0.4",
+  "soundfile>=0.12",
+  "numpy>=1.24",
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: Apache Software License",
+  "Topic :: Multimedia :: Sound/Audio",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.optional-dependencies]
+lora = ["peft>=0.8", "accelerate>=0.27"]
+train = ["audiyo[lora]", "librosa>=0.10"]
+bench = ["psutil>=5.9"]
+test = ["pytest>=7", "psutil>=5.9"]
+all = ["audiyo[lora]", "librosa>=0.10", "psutil>=5.9", "pytest>=7"]
+
+[project.urls]
+Homepage = "https://github.com/TeamAudiyo/Audiyo"
+Issues = "https://github.com/TeamAudiyo/Audiyo/issues"
+
+[project.scripts]
+audiyo = "audiyo.cli.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = ["integration: needs a CUDA GPU and gated HF access"]
+
+[tool.ruff]
+line-length = 100
