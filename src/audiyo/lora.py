@@ -14,8 +14,8 @@ def require_peft() -> None:
         import peft
     except ImportError as exc:
         raise DependencyError(
-            "LoRA needs the 'peft' and 'accelerate' packages. "
-            "Run pip install audiyo[lora] and retry."
+            "LoRA needs the 'peft' and 'accelerate' packages, which ship with audiyo. "
+            "Reinstall with pip install audiyo and retry."
         ) from exc
 
 

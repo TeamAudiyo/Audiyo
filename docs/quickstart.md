@@ -8,11 +8,13 @@ Needs Python 3.10 or newer.
 pip install audiyo
 ```
 
-For training:
+For training on audio files (adds resampling):
 
 ```
 pip install audiyo[train]
 ```
+
+LoRA fine-tuning itself needs nothing extra.
 
 For benchmarks:
 

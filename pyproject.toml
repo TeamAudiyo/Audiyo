@@ -19,6 +19,9 @@ dependencies = [
   "safetensors>=0.4",
   "soundfile>=0.12",
   "numpy>=1.24",
+  "peft>=0.8",
+  "accelerate>=0.27",
+  "einops>=0.4",
 ]
 classifiers = [
   "Programming Language :: Python :: 3",
@@ -28,11 +31,11 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-lora = ["peft>=0.8", "accelerate>=0.27"]
-train = ["audiyo[lora]", "librosa>=0.10"]
+lora = []
+train = ["librosa>=0.10"]
 bench = ["psutil>=5.9"]
 test = ["pytest>=7", "psutil>=5.9"]
-all = ["audiyo[lora]", "librosa>=0.10", "psutil>=5.9", "pytest>=7"]
+all = ["librosa>=0.10", "psutil>=5.9", "pytest>=7"]
 
 [project.urls]
 Homepage = "https://github.com/TeamAudiyo/Audiyo"

@@ -12,9 +12,10 @@ Needs Python 3.10 or newer and a Hugging Face account with access to the checkpo
 
 ```
 pip install audiyo
-pip install audiyo[lora]
 pip install audiyo[train]
 ```
+
+One install covers generation and LoRA fine-tuning. The `[train]` extra only adds audio resampling.
 
 Accept the license at https://huggingface.co/stabilityai/stable-audio-open-1.0, then log in:
 
