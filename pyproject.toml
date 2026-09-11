@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "audiyo"
-version = "0.2.0"
+version = "0.2.1"
 description = "Memory-efficient text-to-audio generation and LoRA fine-tuning for Stable Audio Open"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -13,8 +13,9 @@ authors = [{ name = "Audiyo contributors" }]
 keywords = ["audio", "text-to-audio", "diffusion", "lora", "stable-audio"]
 dependencies = [
   "torch>=2.0",
-  "diffusers>=0.30",
+  "diffusers>=0.40",
   "transformers>=4.38",
+  "sentencepiece>=0.2",
   "huggingface_hub>=0.20",
   "safetensors>=0.4",
   "soundfile>=0.12",

@@ -1,10 +1,18 @@
 # Audiyo
 
-Small Python library to run Stable Audio Open and fine-tune it with LoRA.
+Small Python library to run Stable Audio Open and MiniMax-Music3, and fine-tune both with LoRA.
 
-It wraps the Diffusers pipeline with input checks, seeded output, memory presets, and a LoRA training path.
+It wraps the Diffusers pipelines with input checks, seeded output, memory presets, and a LoRA training path.
 
-Supported checkpoint only: `stabilityai/stable-audio-open-1.0` (stereo, 44100 Hz, up to about 47 seconds).
+Supported checkpoints:
+
+* `stabilityai/stable-audio-open-1.0` (stereo, 44100 Hz, up to about 47 seconds).
+* `TeamAudiyo/MM3-GGUF` — MiniMax-Music3 with quantized GGUF DiT weights
+  (default `q4_k_m`, 1.49 GB, peak VRAM under 4.5 GB with sequential offloading).
+* `TeamAudiyo/MM3-GGUF:MiniMax-Music3-Q4_K_M.gguf` — pick a specific quant
+  (`q3_k_m`, `q4_k_m`, `q5_k_m`, `q6_k`, `q8_0`, `f16`).
+* `MiniMaxAI/MiniMax-Music3` — full bf16 checkpoint (needs diffusers>=0.40
+  and a CUDA GPU; ~20.6 GB sequential, ~10.3 GB with the LLM in 8-bit).
 
 ## Install
 
@@ -50,6 +58,37 @@ Tested on `stabilityai/stable-audio-open-1.0` (44.1kHz Stereo, 10s audio generat
 | **`balanced`** *(Default)* | **5.86 GB** | **0.32 GB** | **8.66 GB** | **RTX 3060, RTX 4060, T4 (8GB+)** |
 | **`low`** | 4.20 GB | 0.25 GB | 8.90 GB | GTX 1080, RTX 2060 (6GB+) |
 | **`minimal`** | 3.10 GB | 0.20 GB | 9.10 GB | Legacy GPUs (4GB+) |
+
+## Generate music with MiniMax-Music3
+
+Songs from lyrics plus a description, with the DiT loaded from quantized GGUF weights:
+
+```python
+from audiyo import AudioModel
+
+model = AudioModel.from_pretrained(
+    "TeamAudiyo/MM3-GGUF",
+    device="auto",
+    memory_mode="balanced",
+)
+
+result = model.generate(
+    prompt="upbeat synth-pop with bright analog arps",
+    lyrics="[verse]\nMorning light\n[chorus]\nWe run the night",
+    duration_seconds=30,
+    seed=42,
+)
+result.save("song.wav")
+```
+
+Lyrics follow the MiniMax tag format: section tags like `[verse]` sit alone on their own line. Songs run up to about six minutes. The 8B LLM, DiT, and vocoder swap in and out of GPU RAM sequentially, so a 6GB card handles the default `q4_k_m` quant.
+
+Dual-component LoRA fine-tuning trains either the LLM composer (`target="llm"`), the DiT voice (`target="transformer"`), or both (`target="both"`); base weights stay frozen:
+
+```python
+report = model.finetune(dataset="my_music", target="both", output_dir="my_adapter", max_steps=200)
+model.load_adapter("my_adapter")
+```
 
 ## Generate audio
 
@@ -135,4 +174,4 @@ Audiyo code is Apache License 2.0, see LICENSE. Model weights use the Stability 
 
 ## Status
 
-Version 0.1.0 is narrow: one runnable model, four memory presets, one training objective. Fast tests run without the checkpoint. Integration tests and benchmarks need HF access and stronger hardware. No checkpoint numbers are claimed here. Run benchmarks/run.py to compare setups.
+Version 0.2.1: Stable Audio Open runnable end to end, plus MiniMax-Music3 with GGUF DiT quants and dual-component LoRA. Full Music3 generation needs diffusers>=0.40 and a CUDA GPU. Fast tests run without any checkpoint. Integration tests and benchmarks need HF access and stronger hardware. No checkpoint numbers are claimed here. Run benchmarks/run.py to compare setups.

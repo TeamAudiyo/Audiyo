@@ -57,21 +57,33 @@ def test_music_sequential_offload_path():
     assert pipe._audiyo_memory_mode == "balanced"
 
 
-def test_music_load_needs_newer_diffusers():
+def test_minimax_pipeline_available_in_pinned_diffusers():
+    from diffusers import MiniMaxMusic3ModularPipeline
+
+    assert MiniMaxMusic3ModularPipeline is not None
+    assert MiniMaxMusic3ModularPipeline.default_blocks_name == "MiniMaxMusic3Blocks"
+
+
+def test_music_load_missing_diffusers_raises_clear_error():
     import sys
+    import types
 
     from audiyo.backends.minimax_music import MinimaxMusicBackend
     from audiyo.errors import AudiyoError
 
-    saved = sys.modules.pop("diffusers", None)
+    real = sys.modules.pop("diffusers", None)
+    fake = types.ModuleType("diffusers")
+    real.__dict__.pop("MiniMaxMusic3ModularPipeline", None)
     try:
+        sys.modules["diffusers"] = fake
         MinimaxMusicBackend().load("MiniMaxAI/MiniMax-Music3")
     except AudiyoError as exc:
         assert "MiniMaxMusic3ModularPipeline" in str(exc)
         return
     finally:
-        if saved is not None:
-            sys.modules["diffusers"] = saved
+        sys.modules.pop("diffusers", None)
+        if real is not None:
+            sys.modules["diffusers"] = real
     raise AssertionError("expected AudiyoError")
 
 

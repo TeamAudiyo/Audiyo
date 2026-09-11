@@ -31,11 +31,14 @@ flow-matching transformer, and a DAC-style vocoder decodes stereo
 audio. Lyrics use section tags like `[verse]` that must sit alone on
 their line. Songs run up to about six minutes.
 
-Two things to know before running it. The full stack peaks near
-20.6 GB sequential in bfloat16 (about 10.3 GB with the LLM in 8-bit),
-and it loads through `MiniMaxMusic3ModularPipeline`,
-which the pinned diffusers 0.39.0 does not have. `load` applies
-`enable_sequential_cpu_offload()` so the 8B LLM, 2.4B DiT, and
+Two things to know before running it. Diffusers 0.40.0 or newer is
+required (it ships `MiniMaxMusic3ModularPipeline`, which the old
+pinned 0.39.0 lacked), and CUDA is needed for real generation.
+The DiT can come from `TeamAudiyo/MM3-GGUF` quantized GGUF weights
+(default `q4_k_m`, 1.49 GB) for a peak under 4.5 GB, or from the
+bf16 checkpoint (peak near 20.6 GB sequential, 10.3 GB with the
+LLM in 8-bit). `load` applies
+`enable_sequential_cpu_offload()` so the 8B LLM, DiT, and
 vocoder swap in and out of GPU RAM sequentially, with the Audiyo
 stage offloader as fallback. `src/audiyo/testkit/music.py` still
 proves the interface offline: tag

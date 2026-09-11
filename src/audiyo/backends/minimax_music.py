@@ -53,8 +53,8 @@ class MinimaxMusicBackend(Backend):
             from diffusers import MiniMaxMusic3ModularPipeline
         except ImportError as exc:
             raise DependencyError(
-                "MiniMax-Music3 needs a diffusers build with MiniMaxMusic3ModularPipeline "
-                "(newer than the pinned 0.39.0). Upgrade diffusers, then retry. Peak is about "
+                "MiniMax-Music3 needs diffusers 0.40.0 or newer (it ships "
+                "MiniMaxMusic3ModularPipeline). Run pip install -U diffusers>=0.40 and retry. Peak is about "
                 + str(estimate_plan("bfloat16")["peak_gb"])
                 + " GB in bfloat16 sequential, about "
                 + str(estimate_plan("int8")["peak_gb"])
