@@ -5,6 +5,7 @@ from typing import Any
 from ..errors import CheckpointError
 from .base import Backend, BackendInfo
 from .minimax_music import MUSIC3_CHECKPOINT, MinimaxMusicBackend
+from ..config import MM3_GGUF_FILES, MM3_GGUF_REPO
 from .stable_audio import StableAudioBackend
 from .testkit_backend import TESTKIT_CHECKPOINT, TestkitBackend
 
@@ -18,6 +19,8 @@ __all__ = ["Backend", "BackendInfo", "MODEL_REGISTRY", "MUSIC3_CHECKPOINT", "Min
 
 
 def detect_model_type(checkpoint: str) -> str:
+    if checkpoint == MM3_GGUF_REPO or checkpoint.startswith(MM3_GGUF_REPO + ":"):
+        return MinimaxMusicBackend.name
     for name, cls in MODEL_REGISTRY.items():
         backend = cls()
         info = backend.info

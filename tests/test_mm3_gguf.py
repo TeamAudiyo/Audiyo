@@ -6,6 +6,55 @@ import tempfile
 import torch
 
 
+def test_detect_routes_gguf_checkpoint():
+    from audiyo.backends import detect_model_type
+
+    assert detect_model_type("TeamAudiyo/MM3-GGUF") == "minimax-music"
+    assert detect_model_type("TeamAudiyo/MM3-GGUF:MiniMax-Music3-Q4_K_M.gguf") == "minimax-music"
+
+
+def test_gguf_checkpoint_selects_default_file():
+    import sys
+    import types
+
+    import torch
+
+    from audiyo.backends.minimax_music import MinimaxMusicBackend
+
+    seen = {}
+
+    class FakePipe:
+        language_model = torch.nn.Linear(4, 4)
+        transformer = torch.nn.Linear(4, 4)
+        vocoder = torch.nn.Linear(4, 4)
+
+        def enable_sequential_cpu_offload(self):
+            seen["seq"] = True
+
+    tensor = types.SimpleNamespace(name="transformer.weight", data=None)
+    fake_gguf = types.ModuleType("gguf")
+    fake_gguf.GGUFReader = lambda path: types.SimpleNamespace(tensors=[tensor], fields={})
+    sys.modules["gguf"] = fake_gguf
+    mod = types.ModuleType("diffusers")
+    mod.MiniMaxMusic3ModularPipeline = types.SimpleNamespace(
+        from_pretrained=staticmethod(lambda checkpoint, **kw: FakePipe())
+    )
+    sys.modules["diffusers"] = mod
+    import audiyo.backends.mm3_gguf as _gguf_mod
+
+    real_download = _gguf_mod.download_gguf_file
+    _gguf_mod.download_gguf_file = lambda repo, filename, token=None: "C:/fake/" + filename
+    try:
+        pipe = MinimaxMusicBackend().load("TeamAudiyo/MM3-GGUF")
+    finally:
+        _gguf_mod.download_gguf_file = real_download
+        sys.modules.pop("diffusers", None)
+        sys.modules.pop("gguf", None)
+    assert seen.get("seq") is True
+    assert pipe._audiyo_gguf_file == "MiniMax-Music3-Q4_K_M.gguf"
+    assert pipe._audiyo_quant == "q4_k_m"
+
+
 def test_gguf_quant_table_defaults_q4():
     from audiyo.backends.mm3_gguf import DEFAULT_QUANT, GGUF_QUANTS, resolve_gguf_file
 

@@ -7,7 +7,18 @@ from .errors import ValidationError
 
 SUPPORTED_CHECKPOINT = "stabilityai/stable-audio-open-1.0"
 MUSIC3_CHECKPOINT = "MiniMaxAI/MiniMax-Music3"
-SUPPORTED_CHECKPOINTS = (SUPPORTED_CHECKPOINT, MUSIC3_CHECKPOINT)
+MM3_GGUF_REPO = "TeamAudiyo/MM3-GGUF"
+MM3_GGUF_FILES = (
+    "MiniMax-Music3-Q3_K_M.gguf",
+    "MiniMax-Music3-Q4_K_M.gguf",
+    "MiniMax-Music3-Q5_K_M.gguf",
+    "MiniMax-Music3-Q6_K.gguf",
+    "MiniMax-Music3-Q8_0.gguf",
+    "MiniMax-Music3-F16.gguf",
+)
+SUPPORTED_CHECKPOINTS = (SUPPORTED_CHECKPOINT, MUSIC3_CHECKPOINT, MM3_GGUF_REPO) + tuple(
+    MM3_GGUF_REPO + ":" + f for f in MM3_GGUF_FILES
+)
 
 SAMPLE_RATE = 44100
 NUM_CHANNELS = 2

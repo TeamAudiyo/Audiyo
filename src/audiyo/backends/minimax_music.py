@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..config import MUSIC3_CHECKPOINT, check_checkpoint
+from ..config import MM3_GGUF_FILES, MM3_GGUF_REPO, MUSIC3_CHECKPOINT, check_checkpoint
 from ..errors import CheckpointError, DependencyError, auth_hint, oom_hint, scrub_text
 from .base import Backend, BackendInfo, require_backend
 from .mm3_gguf import DEFAULT_QUANT, GGUF_QUANTS, GGUF_REPO, estimate_gguf_peak_gb, map_gguf_to_transformer, resolve_gguf_file
@@ -32,12 +32,23 @@ class MinimaxMusicBackend(Backend):
             "gguf_repo": GGUF_REPO,
             "gguf_quants": sorted(GGUF_QUANTS),
             "default_quant": DEFAULT_QUANT,
+            "gguf_checkpoint": MM3_GGUF_REPO,
         },
     )
 
     def load(self, checkpoint: str, **kwargs: Any) -> Any:
         require_backend()
         check_checkpoint(checkpoint)
+        gguf_request = None
+        if checkpoint == MM3_GGUF_REPO:
+            gguf_request = GGUF_QUANTS[DEFAULT_QUANT]["file"]
+        elif checkpoint.startswith(MM3_GGUF_REPO + ":"):
+            gguf_request = checkpoint.split(":", 1)[1]
+            if gguf_request not in MM3_GGUF_FILES:
+                from ..errors import ValidationError
+
+                raise ValidationError("Unknown GGUF file " + repr(gguf_request) + ".")
+        base_checkpoint = MUSIC3_CHECKPOINT
         try:
             from diffusers import MiniMaxMusic3ModularPipeline
         except ImportError as exc:
@@ -97,7 +108,7 @@ class MinimaxMusicBackend(Backend):
             else:
                 load_kwargs["load_in_4bit"] = True
         try:
-            pipe = MiniMaxMusic3ModularPipeline.from_pretrained(checkpoint, **load_kwargs, **kwargs)
+            pipe = MiniMaxMusic3ModularPipeline.from_pretrained(base_checkpoint, **load_kwargs, **kwargs)
         except Exception as exc:
             text = scrub_text(str(exc))
             lowered = text.lower()
@@ -136,6 +147,9 @@ class MinimaxMusicBackend(Backend):
                 pipe._audiyo_stage_mode = "resident"
         pipe._audiyo_memory_mode = memory_mode
         pipe._audiyo_llm_quant = llm_quant
+        if gguf_request is not None and gguf_file is None and quant is None:
+            gguf_file = gguf_request
+            use_gguf = True
         if use_gguf:
             spec = resolve_gguf_file(quant, gguf_file)
             if gguf_path is None:
