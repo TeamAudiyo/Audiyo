@@ -6,8 +6,9 @@ import time
 import numpy as np
 import torch
 
+from .adapters import validate_target_for_roles
 from .audio import AudioResult
-from .backend import check_negative_prompt_supported, load_pipeline, pipeline_max_duration, require_backend
+from .backend import check_negative_prompt_supported, describe_backend, load_pipeline, pipeline_max_duration, require_backend
 from .config import (
     DEFAULT_DURATION_SECONDS,
     DEFAULT_GUIDANCE,
@@ -223,18 +224,29 @@ class AudioModel:
             result.performance["extra"] = extra
         return result
 
-    def load_adapter(self, adapter_dir: str):
+    def load_adapter(self, adapter_dir: str, target: str = "transformer"):
+        from .adapters import role_module
+        from .adapters.dual import load_dual_adapters
         from .lora import load_adapter_into, read_adapter_meta
 
-        meta = read_adapter_meta(adapter_dir)
-        if meta.get("base_model") != self.checkpoint:
-            raise ValidationError(
-                f"Adapter base {meta.get('base_model')!r} does not match loaded checkpoint "
-                f"{self.checkpoint!r}. Loading it would mix models."
-            )
-        self._pipeline.transformer = load_adapter_into(self._pipeline.transformer, adapter_dir)
+        roles = describe_backend(self.checkpoint)["roles"]
+        wanted = validate_target_for_roles(target, roles)
+        if set(wanted) == {"transformer"} and tuple(roles) == ("transformer",):
+            meta = read_adapter_meta(adapter_dir)
+            if meta.get("base_model") != self.checkpoint:
+                raise ValidationError(
+                    f"Adapter base {meta.get('base_model')!r} does not match loaded checkpoint "
+                    f"{self.checkpoint!r}. Loading it would mix models."
+                )
+            self._pipeline.transformer = load_adapter_into(self._pipeline.transformer, adapter_dir)
+            self._adapter_dir = adapter_dir
+            return meta
+        modules = {role: role_module(self._pipeline, role) for role in wanted}
+        loaded = load_dual_adapters(modules, adapter_dir, target)
+        for role, module in loaded.items():
+            setattr(self._pipeline, "language_model" if role == "llm" else "transformer", module)
         self._adapter_dir = adapter_dir
-        return meta
+        return {"roles": sorted(loaded), "adapter_dir": adapter_dir}
 
     def finetune(
         self,
@@ -244,6 +256,7 @@ class AudioModel:
         max_steps: int = 100,
         rank: int = 16,
         alpha: int = 16,
+        target: str = "transformer",
         learning_rate: float = 1e-4,
         duration_seconds: float = DEFAULT_DURATION_SECONDS,
         validation_split: float = 0.0,
@@ -266,6 +279,13 @@ class AudioModel:
             gradient_accumulation_steps=gradient_accumulation_steps,
         )
         fcfg.validate()
+        roles = describe_backend(self.checkpoint)["roles"]
+        wanted = validate_target_for_roles(target, roles)
+        if set(wanted) != {"transformer"} or tuple(roles) != ("transformer",):
+            raise ValidationError(
+                "target " + repr(target) + " needs a runnable dual-component backend. "
+                "The minimax-music backend cannot load in this release. See docs/backends.md."
+            )
         if self.device == "cuda":
             try:
                 import torch as _t

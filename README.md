@@ -121,6 +121,7 @@ Memory is reported before and after a run. See docs/memory.md.
 * docs/training.md - dataset format and LoRA notes
 * docs/benchmarking.md - how to run fair comparisons
 * docs/troubleshooting.md - common errors
+* docs/backends.md - the backend dispatcher and evaluated models
 * docs/api/ - module map for the source tree
 * docs/testkit.md - small test model for local development
 * CONTRIBUTING.md - how to contribute
@@ -134,4 +135,4 @@ Audiyo code is Apache License 2.0, see LICENSE. Model weights use the Stability 
 
 ## Status
 
-Version 0.0.1 is narrow: one model, four memory presets, one training objective. Fast tests run without the checkpoint. Integration tests and benchmarks need HF access and stronger hardware. No checkpoint numbers are claimed here. Run benchmarks/run.py to compare setups.
+Version 0.1.0 is narrow: one runnable model, four memory presets, one training objective. Fast tests run without the checkpoint. Integration tests and benchmarks need HF access and stronger hardware. No checkpoint numbers are claimed here. Run benchmarks/run.py to compare setups.

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from . import config as config
 from . import audio as audio
+from . import backends as backends
 from . import errors as errors
 from . import memory as memory
 from . import utils as utils

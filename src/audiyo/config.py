@@ -6,7 +6,8 @@ from typing import Any, Literal
 from .errors import ValidationError
 
 SUPPORTED_CHECKPOINT = "stabilityai/stable-audio-open-1.0"
-SUPPORTED_CHECKPOINTS = (SUPPORTED_CHECKPOINT,)
+MUSIC3_CHECKPOINT = "MiniMaxAI/MiniMax-Music3"
+SUPPORTED_CHECKPOINTS = (SUPPORTED_CHECKPOINT, MUSIC3_CHECKPOINT)
 
 SAMPLE_RATE = 44100
 NUM_CHANNELS = 2
@@ -23,7 +24,7 @@ MEMORY_MODES: tuple[str, ...] = ("performance", "balanced", "low", "minimal")
 def check_checkpoint(checkpoint: str) -> str:
     if checkpoint not in SUPPORTED_CHECKPOINTS:
         raise ValidationError(
-            f"Unsupported checkpoint {checkpoint!r}. Audiyo 0.0.1 supports only "
+            f"Unsupported checkpoint {checkpoint!r}. Audiyo 0.1.0 supports only "
             f"{list(SUPPORTED_CHECKPOINTS)}. Loading anything else would need "
             "a different pipeline and conditioning setup, so it fails here "
             "instead of producing wrong audio."
