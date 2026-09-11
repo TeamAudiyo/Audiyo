@@ -6,7 +6,7 @@ The license gate is not accepted or you are not logged in. Open https://huggingf
 
 ## Unsupported checkpoint
 
-Audiyo 0.1 loads one checkpoint id only. Anything else raises a clear error. This is on purpose.
+Audiyo 0.0.1 loads one checkpoint id only. Anything else raises a clear error. This is on purpose.
 
 ## Out of memory
 

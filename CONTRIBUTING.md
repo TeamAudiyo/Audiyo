@@ -33,7 +33,7 @@ audiyo presets
 
 ## What to work on
 
-Good first areas: better error messages, more dataset checks, benchmark reports from real hardware, docs fixes. Bigger changes (new models, new objectives) need an issue first so scope can be agreed. Version 0.1 stays single model on purpose.
+Good first areas: better error messages, more dataset checks, benchmark reports from real hardware, docs fixes. Bigger changes (new models, new objectives) need an issue first so scope can be agreed. Version 0.0.1 stays single model on purpose.
 
 ## Style
 

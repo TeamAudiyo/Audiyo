@@ -121,4 +121,4 @@ Audiyo code is Apache License 2.0, see LICENSE. Model weights use the Stability 
 
 ## Status
 
-Version 0.1 is narrow: one model, four memory presets, one training objective. Fast tests run without the checkpoint. Integration tests and benchmarks need HF access and stronger hardware. No checkpoint numbers are claimed here. Run benchmarks/run.py to compare setups.
+Version 0.0.1 is narrow: one model, four memory presets, one training objective. Fast tests run without the checkpoint. Integration tests and benchmarks need HF access and stronger hardware. No checkpoint numbers are claimed here. Run benchmarks/run.py to compare setups.

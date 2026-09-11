@@ -26,7 +26,7 @@ You need HF access and stronger hardware for those.
 
 ## What to work on
 
-Good first areas: better error messages, more dataset checks, benchmark reports, docs fixes. Bigger changes need an issue first. Version 0.1 stays single model on purpose.
+Good first areas: better error messages, more dataset checks, benchmark reports, docs fixes. Bigger changes need an issue first. Version 0.0.1 stays single model on purpose.
 
 ## Style
 

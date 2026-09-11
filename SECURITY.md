@@ -21,7 +21,7 @@ We will confirm within a week, fix what we can, and credit you unless you prefer
 
 ## Dependency audit
 
-Audited with `pip-audit` for the 0.1 release:
+Audited with `pip-audit` for the 0.0.1 release:
 
 * torch, diffusers, transformers, safetensors, soundfile, numpy, peft, librosa, psutil: no known issues reported.
 * accelerate: one advisory about path traversal in `load_checkpoint_in_model` and `load_checkpoint_and_dispatch`. Audiyo never calls those. Loading goes through the Diffusers pipeline with safetensors weights only. Keep accelerate updated.

@@ -15,7 +15,7 @@ Assume good intent. Criticize code, not people. If someone is new, point them at
 
 ## What does not
 
-* Requests to support other models. Version 0.1 is Stable Audio Open only, on purpose. Open an issue to discuss scope before writing code for a new backend.
+* Requests to support other models. Version 0.0.1 is Stable Audio Open only, on purpose. Open an issue to discuss scope before writing code for a new backend.
 * Benchmark claims without hardware and version info.
 * Weights, adapters trained on audio you cannot share, clips you do not own, tokens, or personal data. Do not post any of that in issues or pull requests.
 * Spam, harassment, hate speech, or sexual content. These get removed and repeat offenders get blocked.
