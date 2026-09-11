@@ -9,8 +9,8 @@ Current registry:
 * `stable-audio` — Stable Audio Open, the only runnable backend.
 * `testkit` — the tiny diffusion stand-in, for offline tests.
 * `minimax-music` — Minimax-Music3, loads through
-  `MiniMaxMusic3ModularPipeline` with sequential stage offloading.
-  Needs a diffusers build newer than the pinned 0.39.0.
+  `MiniMaxMusic3ModularPipeline` with GGUF DiT quants plus
+  sequential stage offloading. Default `q4_k_m` peaks under 4.5 GB.
 
 Adding a backend means a new file with a `Backend` subclass, one
 registry line, and capability info (sample rate, channels, negative

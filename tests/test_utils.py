@@ -7,7 +7,7 @@ import torch
 def test_import_stays_light():
     import audiyo
 
-    assert audiyo.__version__ == "0.1.1"
+    assert audiyo.__version__ == "0.2.0"
     model_cls = audiyo.AudioModel
     assert model_cls is not None
 

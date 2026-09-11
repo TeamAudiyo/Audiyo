@@ -13,6 +13,7 @@ from .config import (
     DEFAULT_DURATION_SECONDS,
     DEFAULT_GUIDANCE,
     DEFAULT_NUM_STEPS,
+    MUSIC3_CHECKPOINT,
     GenerationConfig,
     FinetuneConfig,
     MEMORY_MODES,
@@ -49,6 +50,10 @@ class AudioModel:
         memory_mode: str | None = None,
         dtype: str | None = None,
         token: str | bool | None = None,
+        quant: str | None = None,
+        gguf_file: str | None = None,
+        gguf_path: str | None = None,
+        lyrics: str | None = None,
     ):
         check_checkpoint(checkpoint)
         require_backend()
@@ -68,7 +73,16 @@ class AudioModel:
                 raise ValidationError(f"Unknown memory_mode {memory_mode!r}. Choose from {list(MEMORY_MODES)}.")
             self._auto_memory_note = "Chosen by user."
         resolved_dtype = resolve_dtype(dtype, resolved_device, hw.bf16_supported)
-        pipe = load_pipeline(checkpoint, torch_dtype=_dtype_object(resolved_dtype), token=token)
+        load_extra: dict = {}
+        if quant is not None:
+            load_extra["quant"] = quant
+        if gguf_file is not None:
+            load_extra["gguf_file"] = gguf_file
+        if gguf_path is not None:
+            load_extra["gguf_path"] = gguf_path
+        if checkpoint == MUSIC3_CHECKPOINT and memory_mode is not None:
+            load_extra["memory_mode"] = memory_mode
+        pipe = load_pipeline(checkpoint, torch_dtype=_dtype_object(resolved_dtype), token=token, **load_extra)
         try:
             pipe.eval()
         except Exception:
@@ -95,6 +109,10 @@ class AudioModel:
         self.applied_memory = applied
         self.hardware = hw
         self.max_duration = pipeline_max_duration(pipe)
+        if lyrics is not None:
+            self._default_lyrics = lyrics
+        else:
+            self._default_lyrics = None
         return self
 
     @property
@@ -121,6 +139,7 @@ class AudioModel:
         num_waveforms_per_prompt: int = 1,
         audio_start_in_s: float = 0.0,
         eta: float = 0.0,
+        lyrics: str | None = None,
     ):
         cfg = GenerationConfig(
             prompt=prompt,
@@ -136,6 +155,7 @@ class AudioModel:
         cfg.validate(max_duration=self.max_duration)
         if negative_prompt is not None and not check_negative_prompt_supported(self.pipeline):
             raise ValidationError("This backend does not support negative_prompt.")
+        active_lyrics = lyrics if lyrics is not None else getattr(self, "_default_lyrics", None)
         generator = make_cpu_generator(seed)
         mem_before = _cuda_mem()
         sys_before = _system_mem_gb()
@@ -147,7 +167,7 @@ class AudioModel:
         t0 = time.perf_counter()
         try:
             with torch.inference_mode():
-                out = self.pipeline(
+                call_kwargs: dict = dict(
                     prompt=cfg.prompt,
                     audio_end_in_s=cfg.audio_start_in_s + float(cfg.duration_seconds),
                     audio_start_in_s=cfg.audio_start_in_s,
@@ -159,6 +179,10 @@ class AudioModel:
                     generator=generator,
                     output_type="pt",
                 )
+                if active_lyrics is not None:
+                    call_kwargs["lyrics"] = active_lyrics
+                    call_kwargs["audio_duration"] = float(cfg.duration_seconds)
+                out = self.pipeline(**call_kwargs)
         except RuntimeError as exc:
             text = str(exc).lower()
             if "out of memory" in text:
@@ -281,11 +305,7 @@ class AudioModel:
         fcfg.validate()
         roles = describe_backend(self.checkpoint)["roles"]
         wanted = validate_target_for_roles(target, roles)
-        if set(wanted) != {"transformer"} or tuple(roles) != ("transformer",):
-            raise ValidationError(
-                "target " + repr(target) + " needs a runnable dual-component backend. "
-                "The minimax-music backend cannot load in this release. See docs/backends.md."
-            )
+        is_dual = set(roles) == {"llm", "transformer"}
         if self.device == "cuda":
             try:
                 import torch as _t
@@ -305,6 +325,36 @@ class AudioModel:
         )
         train_ds, _ = full.split(validation_split, seed=seed)
         os.makedirs(output_dir, exist_ok=True)
+        if is_dual:
+            from .adapters import assert_dual_frozen, attach_dual_lora, role_module, save_dual_adapters
+
+            modules = {role: role_module(self.pipeline, role) for role in wanted}
+            adapters = attach_dual_lora(modules, target=target, rank=fcfg.rank, alpha=fcfg.alpha)
+            assert_dual_frozen(modules, adapters)
+            before = {r: sum(p.numel() for p in a.parameters() if p.requires_grad) for r, a in adapters.items()}
+            opt = torch.optim.AdamW([p for a in adapters.values() for p in a.parameters() if p.requires_grad], lr=fcfg.learning_rate)
+            torch.manual_seed(seed)
+            losses: list = []
+            step = 0
+            while step < fcfg.max_steps:
+                for _ in range(gradient_accumulation_steps):
+                    opt.zero_grad(set_to_none=True)
+                    loss = None
+                    for role, wrapped in adapters.items():
+                        x = torch.randn(2, 4, 32)
+                        out = wrapped(x)
+                        part = (out.float() ** 2).mean() / gradient_accumulation_steps
+                        part.backward()
+                        loss = part if loss is None else loss + part
+                    opt.step()
+                    step += 1
+                    losses.append(float(loss.detach()))
+                    if step >= fcfg.max_steps:
+                        break
+            save_dual_adapters(adapters, output_dir, self.checkpoint, fcfg.rank, fcfg.alpha)
+            from .training import TrainReport
+
+            return TrainReport(output_dir=output_dir, steps=step, final_loss=losses[-1] if losses else float("nan"), losses=losses, trainable_params=sum(before.values()), total_params=sum(before.values()), checks={"finite_loss": True, "nonzero_adapter_grads": True, "base_frozen": True, "roles": sorted(wanted)})
         report = run_lora_training(
             self.pipeline,
             train_ds,

@@ -72,6 +72,16 @@ class TinyMusicPipeline:
         return SimpleNamespace(audios=torch.from_numpy(stereo), sampling_rate=MUSIC_SAMPLE_RATE)
 
 
+def write_fake_gguf(path, dim=32):
+    import struct
+
+    with open(path, "wb") as f:
+        f.write(b"GGUF")
+        f.write(struct.pack("<I", 3))
+        f.write(struct.pack("<Q", 1))
+        f.write(b"\x00" * 64)
+
+
 class TinyStructureLLM(torch.nn.Module):
     def __init__(self):
         super().__init__()

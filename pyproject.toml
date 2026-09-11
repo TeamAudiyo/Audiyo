@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "audiyo"
-version = "0.1.1"
+version = "0.2.0"
 description = "Memory-efficient text-to-audio generation and LoRA fine-tuning for Stable Audio Open"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -22,6 +22,7 @@ dependencies = [
   "peft>=0.8",
   "accelerate>=0.27",
   "einops>=0.4",
+  "gguf>=0.10.0",
 ]
 classifiers = [
   "Programming Language :: Python :: 3",

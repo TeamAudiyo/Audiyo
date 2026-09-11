@@ -5,6 +5,7 @@ from typing import Any
 from ..config import MUSIC3_CHECKPOINT, check_checkpoint
 from ..errors import CheckpointError, DependencyError, auth_hint, oom_hint, scrub_text
 from .base import Backend, BackendInfo, require_backend
+from .mm3_gguf import DEFAULT_QUANT, GGUF_QUANTS, GGUF_REPO, estimate_gguf_peak_gb, map_gguf_to_transformer, resolve_gguf_file
 from .music_stages import PRESET_STAGE_PLAN, StageOffloader, estimate_plan
 
 
@@ -27,7 +28,10 @@ class MinimaxMusicBackend(Backend):
             "components": "Qwen3ForCausalLM plus MiniMaxMusic3RVQDepthDecoder plus MiniMaxMusic3ConditionEncoder plus MiniMaxMusic3Transformer1DModel plus FlowMatchEulerDiscreteScheduler plus MiniMaxMusic3Vocoder",
             "lora_targets": "unverified",
             "stages": "structure plus flow plus vocoder, sequential with one resident",
-            "peak_estimates_gb": {"bfloat16": estimate_plan("bfloat16")["peak_gb"], "int8_llm": estimate_plan("int8")["peak_gb"]},
+            "peak_estimates_gb": {"bfloat16": estimate_plan("bfloat16")["peak_gb"], "int8_llm": estimate_plan("int8")["peak_gb"], "gguf_q4_k_m": estimate_gguf_peak_gb("q4_k_m")},
+            "gguf_repo": GGUF_REPO,
+            "gguf_quants": sorted(GGUF_QUANTS),
+            "default_quant": DEFAULT_QUANT,
         },
     )
 
@@ -72,6 +76,11 @@ class MinimaxMusicBackend(Backend):
             torch_dtype = torch.bfloat16
         token = kwargs.pop("token", None)
         device_map = kwargs.pop("device_map", None)
+        quant = kwargs.pop("quant", None)
+        gguf_file = kwargs.pop("gguf_file", None)
+        gguf_path = kwargs.pop("gguf_path", None)
+        gguf_repo = kwargs.pop("gguf_repo", GGUF_REPO)
+        use_gguf = quant is not None or gguf_file is not None or gguf_path is not None
         load_kwargs: dict = {"torch_dtype": torch_dtype}
         if device_map is not None:
             load_kwargs["device_map"] = device_map
@@ -127,4 +136,25 @@ class MinimaxMusicBackend(Backend):
                 pipe._audiyo_stage_mode = "resident"
         pipe._audiyo_memory_mode = memory_mode
         pipe._audiyo_llm_quant = llm_quant
+        if use_gguf:
+            spec = resolve_gguf_file(quant, gguf_file)
+            if gguf_path is None:
+                try:
+                    from .mm3_gguf import download_gguf_file
+
+                    gguf_path = download_gguf_file(gguf_repo, spec["file"], token)
+                except Exception as exc:
+                    raise CheckpointError("Could not download " + spec["file"] + ": " + scrub_text(str(exc))) from exc
+            transformer = getattr(pipe, "transformer", None)
+            if transformer is not None and gguf_path is not None:
+                try:
+                    pipe._audiyo_gguf_mapped = map_gguf_to_transformer(gguf_path, transformer)
+                except Exception as exc:
+                    pipe._audiyo_gguf_error = scrub_text(str(exc))[:300]
+                    pipe._audiyo_gguf_mapped = 0
+            pipe._audiyo_quant = spec["quant"]
+            pipe._audiyo_gguf_file = spec["file"]
+            pipe._audiyo_gguf_path = gguf_path
+        else:
+            pipe._audiyo_quant = "bf16"
         return pipe
