@@ -8,7 +8,7 @@ version = "0.0.1"
 description = "Memory-efficient text-to-audio generation and LoRA fine-tuning for Stable Audio Open"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
 authors = [{ name = "Audiyo contributors" }]
 keywords = ["audio", "text-to-audio", "diffusion", "lora", "stable-audio"]
 dependencies = [
@@ -25,7 +25,6 @@ dependencies = [
 ]
 classifiers = [
   "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: Apache Software License",
   "Topic :: Multimedia :: Sound/Audio",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
