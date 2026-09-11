@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..config import MUSIC3_CHECKPOINT
-from ..errors import CheckpointError
-from .base import Backend, BackendInfo
-from .music_stages import estimate_plan
+from ..config import MUSIC3_CHECKPOINT, check_checkpoint
+from ..errors import CheckpointError, DependencyError, auth_hint, oom_hint, scrub_text
+from .base import Backend, BackendInfo, require_backend
+from .music_stages import PRESET_STAGE_PLAN, StageOffloader, estimate_plan
 
 
 class MinimaxMusicBackend(Backend):
@@ -32,8 +32,99 @@ class MinimaxMusicBackend(Backend):
     )
 
     def load(self, checkpoint: str, **kwargs: Any) -> Any:
-        raise CheckpointError(
-            "MiniMax-Music3 cannot load in this Audiyo release. It needs a diffusers build with "
-            "MiniMaxMusic3ModularPipeline (newer than the pinned 0.39.0), a CUDA GPU, and about "
-            "22 GB of free VRAM in bfloat16. See docs/backends.md for the full evaluation."
-        )
+        require_backend()
+        check_checkpoint(checkpoint)
+        try:
+            from diffusers import MiniMaxMusic3ModularPipeline
+        except ImportError as exc:
+            raise DependencyError(
+                "MiniMax-Music3 needs a diffusers build with MiniMaxMusic3ModularPipeline "
+                "(newer than the pinned 0.39.0). Upgrade diffusers, then retry. Peak is about "
+                + str(estimate_plan("bfloat16")["peak_gb"])
+                + " GB in bfloat16 sequential, about "
+                + str(estimate_plan("int8")["peak_gb"])
+                + " GB with the LLM in 8-bit."
+            ) from exc
+        memory_mode = kwargs.pop("memory_mode", "balanced")
+        if memory_mode not in PRESET_STAGE_PLAN:
+            from ..errors import ValidationError
+
+            raise ValidationError("Unknown memory_mode " + repr(memory_mode) + ".")
+        plan = PRESET_STAGE_PLAN[memory_mode]
+        llm_quant = kwargs.pop("llm_quant", None)
+        if llm_quant is None:
+            llm_quant = "none" if plan["llm_dtype"] == "bfloat16" else plan["llm_dtype"]
+            try:
+                import torch as _t
+
+                if _t.cuda.is_available():
+                    total = float(_t.cuda.get_device_properties(0).total_memory) / (1024 ** 3)
+                    if total <= 13.0:
+                        llm_quant = "int4"
+                    elif total <= 21.0:
+                        llm_quant = "int8"
+            except Exception:
+                pass
+        torch_dtype = kwargs.pop("torch_dtype", None)
+        if torch_dtype is None:
+            import torch
+
+            torch_dtype = torch.bfloat16
+        token = kwargs.pop("token", None)
+        device_map = kwargs.pop("device_map", None)
+        load_kwargs: dict = {"torch_dtype": torch_dtype}
+        if device_map is not None:
+            load_kwargs["device_map"] = device_map
+        if token is not None:
+            load_kwargs["token"] = token
+        want = str(llm_quant).lower()
+        if want in ("int8", "int4", "8bit", "4bit"):
+            try:
+                import bitsandbytes  # noqa: F401
+            except ImportError as exc:
+                raise DependencyError("mode " + repr(memory_mode) + " needs bitsandbytes.") from exc
+            if want in ("int8", "8bit"):
+                load_kwargs["load_in_8bit"] = True
+            else:
+                load_kwargs["load_in_4bit"] = True
+        try:
+            pipe = MiniMaxMusic3ModularPipeline.from_pretrained(checkpoint, **load_kwargs, **kwargs)
+        except Exception as exc:
+            text = scrub_text(str(exc))
+            lowered = text.lower()
+            if any(k in lowered for k in ("401", "403", "gated", "unauthorized", "token", "login")):
+                raise auth_hint(text) from exc
+            if "out of memory" in lowered:
+                raise oom_hint("loading MiniMax-Music3") from exc
+            raise CheckpointError("Could not load " + repr(checkpoint) + ": " + text) from exc
+        try:
+            pipe.enable_sequential_cpu_offload()
+            pipe._audiyo_stage_mode = "sequential-cpu-offload"
+        except Exception:
+            try:
+                stages = {}
+                pairs = (("structure", ("language_model", "structure")), ("flow", ("transformer", "flow")), ("vocoder", ("vocoder", "vae")))
+                ok = True
+                for stage_name, attrs in pairs:
+                    module = None
+                    for attr in attrs:
+                        module = getattr(pipe, attr, None)
+                        if module is not None:
+                            break
+                    if module is None:
+                        ok = False
+                        break
+                    stages[stage_name] = module
+                if ok:
+                    import torch
+
+                    device = "cuda" if torch.cuda.is_available() else "cpu"
+                    pipe._audiyo_offloader = StageOffloader(stages, device)
+                    pipe._audiyo_stage_mode = "audiyo-stage-offloader:" + device
+                else:
+                    pipe._audiyo_stage_mode = "resident"
+            except Exception:
+                pipe._audiyo_stage_mode = "resident"
+        pipe._audiyo_memory_mode = memory_mode
+        pipe._audiyo_llm_quant = llm_quant
+        return pipe

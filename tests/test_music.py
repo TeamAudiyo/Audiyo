@@ -26,15 +26,52 @@ def test_music_backend_describes_verified_facts():
     assert "Community License" in info["license_note"]
 
 
-def test_music_load_fails_clearly_without_download():
-    from audiyo.backends import load_pipeline
+def test_music_sequential_offload_path():
+    import sys
+    import types
+    import torch
+
+    from audiyo.backends.minimax_music import MinimaxMusicBackend
+
+    made = {}
+
+    class FakePipe:
+        language_model = torch.nn.Linear(4, 4)
+        transformer = torch.nn.Linear(4, 4)
+        vocoder = torch.nn.Linear(4, 4)
+
+        def enable_sequential_cpu_offload(self):
+            made["seq"] = True
+
+    mod = types.ModuleType("diffusers")
+    mod.MiniMaxMusic3ModularPipeline = types.SimpleNamespace(
+        from_pretrained=staticmethod(lambda checkpoint, **kw: FakePipe())
+    )
+    sys.modules["diffusers"] = mod
+    try:
+        pipe = MinimaxMusicBackend().load("MiniMaxAI/MiniMax-Music3")
+    finally:
+        sys.modules.pop("diffusers", None)
+    assert made.get("seq") is True
+    assert pipe._audiyo_stage_mode == "sequential-cpu-offload"
+    assert pipe._audiyo_memory_mode == "balanced"
+
+
+def test_music_load_needs_newer_diffusers():
+    import sys
+
+    from audiyo.backends.minimax_music import MinimaxMusicBackend
     from audiyo.errors import AudiyoError
 
+    saved = sys.modules.pop("diffusers", None)
     try:
-        load_pipeline("MiniMaxAI/MiniMax-Music3")
+        MinimaxMusicBackend().load("MiniMaxAI/MiniMax-Music3")
     except AudiyoError as exc:
-        assert "22 GB" in str(exc)
+        assert "MiniMaxMusic3ModularPipeline" in str(exc)
         return
+    finally:
+        if saved is not None:
+            sys.modules["diffusers"] = saved
     raise AssertionError("expected AudiyoError")
 
 

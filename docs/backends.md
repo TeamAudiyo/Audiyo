@@ -8,8 +8,9 @@ Current registry:
 
 * `stable-audio` — Stable Audio Open, the only runnable backend.
 * `testkit` — the tiny diffusion stand-in, for offline tests.
-* `minimax-music` — Minimax-Music3, described but not runnable here.
-  Loading it raises a clear error naming what is missing.
+* `minimax-music` — Minimax-Music3, loads through
+  `MiniMaxMusic3ModularPipeline` with sequential stage offloading.
+  Needs a diffusers build newer than the pinned 0.39.0.
 
 Adding a backend means a new file with a `Backend` subclass, one
 registry line, and capability info (sample rate, channels, negative
@@ -30,11 +31,14 @@ flow-matching transformer, and a DAC-style vocoder decodes stereo
 audio. Lyrics use section tags like `[verse]` that must sit alone on
 their line. Songs run up to about six minutes.
 
-Two things keep it out of reach here. The full stack needs about 22 GB
-of VRAM in bfloat16, and it loads through `MiniMaxMusic3ModularPipeline`,
-which the pinned diffusers 0.39.0 does not have. So the backend records
-the verified facts, `load` fails with the requirements spelled out,
-and `src/audiyo/testkit/music.py` proves the interface instead: tag
+Two things to know before running it. The full stack peaks near
+20.6 GB sequential in bfloat16 (about 10.3 GB with the LLM in 8-bit),
+and it loads through `MiniMaxMusic3ModularPipeline`,
+which the pinned diffusers 0.39.0 does not have. `load` applies
+`enable_sequential_cpu_offload()` so the 8B LLM, 2.4B DiT, and
+vocoder swap in and out of GPU RAM sequentially, with the Audiyo
+stage offloader as fallback. `src/audiyo/testkit/music.py` still
+proves the interface offline: tag
 parsing with the real drop rule plus deterministic stereo output.
 
 One honest discrepancy: the repo advertises 32 kHz output while the
