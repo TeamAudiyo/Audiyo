@@ -12,6 +12,10 @@ from . import adapters as adapters
 from . import memopt as memopt
 from . import benchutils as benchutils
 from . import testkit as testkit
+from . import postfx as postfx
+from . import quality as quality
+from . import estimate as estimate
+from . import configfile as configfile
 from ._version import __version__
 
 __all__ = ["AudioModel", "AudioResult", "GenerationConfig", "FinetuneConfig", "__version__"]

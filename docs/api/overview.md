@@ -11,3 +11,8 @@ Map of where things live. Public imports stay the same.
 * `audiyo.training` - training loop
 * `audiyo.benchmark` - benchmark runner, helpers in `src/audiyo/benchutils/`
 * `audiyo.hardware`, `audiyo.backend`, `audiyo.chunked`, `audiyo.errors`
+* `audiyo.postfx` - fades, normalize, limiter, silence trim
+* `audiyo.quality` - levels, spectrum, compare, listening sheets
+* `audiyo.estimate` - load-time memory estimate before download
+* `audiyo.configfile` - JSON config files for the CLI
+* `audiyo.ui` - optional local web demo, needs pip install audiyo[ui]

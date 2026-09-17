@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "audiyo"
-version = "0.2.1"
+version = "0.3.1"
 description = "Memory-efficient text-to-audio generation and LoRA fine-tuning for Stable Audio Open"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -36,7 +36,8 @@ lora = []
 train = ["librosa>=0.10"]
 bench = ["psutil>=5.9"]
 test = ["pytest>=7", "psutil>=5.9"]
-all = ["librosa>=0.10", "psutil>=5.9", "pytest>=7"]
+ui = ["gradio>=4"]
+all = ["librosa>=0.10", "psutil>=5.9", "pytest>=7", "gradio>=4"]
 
 [project.urls]
 Homepage = "https://github.com/TeamAudiyo/Audiyo"

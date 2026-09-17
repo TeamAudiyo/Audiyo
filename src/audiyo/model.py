@@ -140,6 +140,12 @@ class AudioModel:
         audio_start_in_s: float = 0.0,
         eta: float = 0.0,
         lyrics: str | None = None,
+        fade_in_ms: float = 0.0,
+        fade_out_ms: float = 0.0,
+        normalize_peak: float | None = None,
+        limiter: bool = False,
+        trim_silence: bool = False,
+        trim_db: float = -50.0,
     ):
         cfg = GenerationConfig(
             prompt=prompt,
@@ -151,6 +157,12 @@ class AudioModel:
             num_waveforms_per_prompt=num_waveforms_per_prompt,
             audio_start_in_s=audio_start_in_s,
             eta=eta,
+            fade_in_ms=fade_in_ms,
+            fade_out_ms=fade_out_ms,
+            normalize_peak=normalize_peak,
+            limiter=limiter,
+            trim_silence=trim_silence,
+            trim_db=trim_db,
         )
         cfg.validate(max_duration=self.max_duration)
         if negative_prompt is not None and not check_negative_prompt_supported(self.pipeline):
@@ -198,6 +210,18 @@ class AudioModel:
         sys_after = _system_mem_gb()
         audios = out.audios if hasattr(out, "audios") else out[0]
         wav = extract_first_waveform(audios)
+        from .postfx import apply_postfx
+
+        wav, postfx_applied = apply_postfx(
+            wav,
+            SAMPLE_RATE,
+            cfg.fade_in_ms,
+            cfg.fade_out_ms,
+            cfg.normalize_peak,
+            cfg.limiter,
+            cfg.trim_silence,
+            cfg.trim_db,
+        )
         gen_per_sec = float(cfg.duration_seconds) / max(latency, 1e-6)
         performance = build_performance(
             latency,
@@ -219,6 +243,7 @@ class AudioModel:
             cfg.seed,
             self.checkpoint,
         )
+        settings["postfx"] = postfx_applied
         result = AudioResult(
             waveform=wav.astype(np.float32),
             sample_rate=SAMPLE_RATE,
@@ -233,6 +258,16 @@ class AudioModel:
             count = count_waveforms(audios)
             for i in range(1, count):
                 w = extract_waveform_at(audios, i)
+                w, _ = apply_postfx(
+                    w,
+                    SAMPLE_RATE,
+                    cfg.fade_in_ms,
+                    cfg.fade_out_ms,
+                    cfg.normalize_peak,
+                    cfg.limiter,
+                    cfg.trim_silence,
+                    cfg.trim_db,
+                )
                 extra.append(
                     AudioResult(
                         waveform=w.astype(np.float32),
@@ -247,6 +282,52 @@ class AudioModel:
             result.settings["extra_waveforms"] = len(extra)
             result.performance["extra"] = extra
         return result
+
+    def generate_variations(
+        self,
+        prompt: str,
+        seeds: list,
+        duration_seconds: float = DEFAULT_DURATION_SECONDS,
+        num_inference_steps: int = DEFAULT_NUM_STEPS,
+        guidance_scale: float = DEFAULT_GUIDANCE,
+        negative_prompt: str | None = None,
+        lyrics: str | None = None,
+        fade_in_ms: float = 0.0,
+        fade_out_ms: float = 0.0,
+        normalize_peak: float | None = None,
+        limiter: bool = False,
+        trim_silence: bool = False,
+    ):
+        if not isinstance(seeds, list) or not seeds:
+            raise ValidationError("seeds must be a non-empty list of ints.")
+        if len(seeds) > 8:
+            raise ValidationError("keep variations to 8 or fewer per call.")
+        out = []
+        for seed in seeds:
+            out.append(
+                self.generate(
+                    prompt=prompt,
+                    duration_seconds=duration_seconds,
+                    seed=int(seed),
+                    num_inference_steps=num_inference_steps,
+                    guidance_scale=guidance_scale,
+                    negative_prompt=negative_prompt,
+                    lyrics=lyrics,
+                    fade_in_ms=fade_in_ms,
+                    fade_out_ms=fade_out_ms,
+                    normalize_peak=normalize_peak,
+                    limiter=limiter,
+                    trim_silence=trim_silence,
+                )
+            )
+        return out
+
+    def generate_batch(self, prompts: list, seed: int | None = None, duration_seconds: float = DEFAULT_DURATION_SECONDS, num_inference_steps: int = DEFAULT_NUM_STEPS, guidance_scale: float = DEFAULT_GUIDANCE):
+        if not isinstance(prompts, list) or not prompts:
+            raise ValidationError("prompts must be a non-empty list of strings.")
+        if len(prompts) > 8:
+            raise ValidationError("keep batches to 8 or fewer prompts per call.")
+        return [self.generate(prompt=p, seed=seed, duration_seconds=duration_seconds, num_inference_steps=num_inference_steps, guidance_scale=guidance_scale) for p in prompts]
 
     def load_adapter(self, adapter_dir: str, target: str = "transformer"):
         from .adapters import role_module

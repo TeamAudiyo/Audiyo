@@ -44,6 +44,30 @@ def main(argv=None) -> int:
         from .info_cmd import run_adapters
 
         return run_adapters(args)
+    if args.command == "quality":
+        from .quality_cmd import run_quality
+
+        return run_quality(args)
+    if args.command == "compare":
+        from .quality_cmd import run_compare
+
+        return run_compare(args)
+    if args.command == "sheet":
+        from .quality_cmd import run_sheet
+
+        return run_sheet(args)
+    if args.command == "estimate":
+        from .system_cmd import run_estimate
+
+        return run_estimate(args)
+    if args.command == "ui":
+        from .system_cmd import run_ui
+
+        return run_ui(args)
+    if args.command == "init-config":
+        from .system_cmd import run_init_config
+
+        return run_init_config(args)
     if args.command == "chat":
         from .chat import run_chat
 

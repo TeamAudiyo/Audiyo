@@ -22,6 +22,12 @@ For benchmarks:
 pip install audiyo[bench]
 ```
 
+For the local web page:
+
+```
+pip install audiyo[ui]
+```
+
 To work from this repo:
 
 ```

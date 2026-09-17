@@ -45,16 +45,20 @@ class AudioResult:
         return float(over) / float(self.waveform.size)
 
     def save(self, path: str, normalize: bool = False) -> str:
-        """Write a WAV file. Normalization is off unless asked for."""
         try:
             import soundfile as sf
         except ImportError as exc:
             from .errors import DependencyError
 
             raise DependencyError(
-                "Saving audio needs the 'soundfile' package. Install audiyo with "
+                "Saving audio needs the soundfile package. Install audiyo with "
                 "pip install audiyo, which includes it."
             ) from exc
+        ext = os.path.splitext(path)[1].lower()
+        if ext not in (".wav", ".flac", ".ogg", ".opus"):
+            raise ValidationError(
+                "unsupported output extension " + repr(ext) + ". Use wav, flac, ogg, or opus."
+            )
         data = self.waveform
         if normalize:
             peak = self.peak

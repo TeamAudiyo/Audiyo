@@ -54,6 +54,12 @@ class GenerationConfig:
     num_waveforms_per_prompt: int = 1
     audio_start_in_s: float = 0.0
     eta: float = 0.0
+    fade_in_ms: float = 0.0
+    fade_out_ms: float = 0.0
+    normalize_peak: float | None = None
+    limiter: bool = False
+    trim_silence: bool = False
+    trim_db: float = -50.0
 
     def validate(self, max_duration: float = MAX_DURATION_SECONDS) -> "GenerationConfig":
         if not isinstance(self.prompt, str) or not self.prompt.strip():
@@ -82,6 +88,17 @@ class GenerationConfig:
             raise ValidationError("eta must be between 0 and 1.")
         if self.seed is not None and not isinstance(self.seed, int):
             raise ValidationError("seed must be an int or None.")
+        from .postfx import validate_postfx
+
+        validate_postfx(
+            self.fade_in_ms,
+            self.fade_out_ms,
+            self.normalize_peak,
+            self.limiter,
+            self.trim_silence,
+            self.trim_db,
+            self.duration_seconds,
+        )
         return self
 
 

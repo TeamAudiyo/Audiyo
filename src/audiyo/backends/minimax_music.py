@@ -100,7 +100,9 @@ class MinimaxMusicBackend(Backend):
         want = str(llm_quant).lower()
         if want in ("int8", "int4", "8bit", "4bit"):
             try:
-                import bitsandbytes  # noqa: F401
+                import bitsandbytes as _bnb
+
+                _ = _bnb.__name__
             except ImportError as exc:
                 raise DependencyError("mode " + repr(memory_mode) + " needs bitsandbytes.") from exc
             if want in ("int8", "8bit"):

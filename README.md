@@ -40,6 +40,12 @@ audiyo info
 audiyo hardware
 audiyo presets
 audiyo generate "Rain against a window" -o rain.wav --duration 10 --seed 42
+audiyo generate "Rain on a roof" --seeds 1,2,3 -o rain.wav
+audiyo quality rain.wav
+audiyo compare before.wav after.wav
+audiyo sheet ./clips --out sheet.csv
+audiyo estimate --memory-mode balanced
+audiyo ui
 audiyo finetune my_data -o my_adapter --max-steps 200
 audiyo adapters my_adapter/adapter
 audiyo benchmark --duration 10 --steps 20
@@ -156,6 +162,9 @@ Memory is reported before and after a run. See docs/memory.md.
 ## Docs
 
 * docs/quickstart.md - install and first generation
+* docs/generation.md - variations, fades, formats, config files
+* docs/quality.md - check, compare, and listening sheets
+* docs/ui.md - web demo, config files, size check
 * docs/memory.md - what each preset changes
 * docs/training.md - dataset format and LoRA notes
 * docs/benchmarking.md - how to run fair comparisons
@@ -174,4 +183,4 @@ Audiyo code is Apache License 2.0, see LICENSE. Model weights use the Stability 
 
 ## Status
 
-Version 0.2.1: Stable Audio Open runnable end to end, plus MiniMax-Music3 with GGUF DiT quants and dual-component LoRA. Full Music3 generation needs diffusers>=0.40 and a CUDA GPU. Fast tests run without any checkpoint. Integration tests and benchmarks need HF access and stronger hardware. No checkpoint numbers are claimed here. Run benchmarks/run.py to compare setups.
+Version 0.3.1: same solid base, plus easier generation controls, quick quality checks, and a simple local web demo. Full Music3 generation still needs diffusers>=0.40 and a CUDA GPU. Fast tests run without any checkpoint.
