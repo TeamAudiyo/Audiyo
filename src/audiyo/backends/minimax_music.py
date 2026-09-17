@@ -100,7 +100,8 @@ class MinimaxMusicBackend(Backend):
             load_kwargs["token"] = token
         want = str(llm_quant).lower()
         quant_flags: dict = {}
-        if want in ("int8", "int4", "8bit", "4bit"):
+        quantize_lm = want in ("int8", "int4", "8bit", "4bit")
+        if quantize_lm:
             try:
                 import bitsandbytes as _bnb
 
@@ -108,10 +109,8 @@ class MinimaxMusicBackend(Backend):
             except ImportError as exc:
                 raise DependencyError("mode " + repr(memory_mode) + " needs bitsandbytes.") from exc
             if want in ("int8", "8bit"):
-                load_kwargs["load_in_8bit"] = True
                 quant_flags["load_in_8bit"] = True
             else:
-                load_kwargs["load_in_4bit"] = True
                 quant_flags["load_in_4bit"] = True
         try:
             pipe = MiniMaxMusic3ModularPipeline.from_pretrained(base_checkpoint, **load_kwargs, **kwargs)
@@ -131,6 +130,21 @@ class MinimaxMusicBackend(Backend):
             raise
         except Exception as exc:
             raise CheckpointError("Component check failed: " + scrub_text(str(exc))[:200]) from exc
+        if quantize_lm:
+            try:
+                from .music_components import load_fallback_component
+
+                lm_device_map = device_map if device_map is not None else "auto"
+                pipe.language_model = load_fallback_component(
+                    "language_model", base_checkpoint, torch_dtype, token, lm_device_map, quant_flags
+                )
+                pipe._audiyo_quantized_components = ["language_model"]
+            except Exception as exc:
+                raise CheckpointError(
+                    "Could not load a quantized language model: " + scrub_text(str(exc))[:300]
+                ) from exc
+        else:
+            pipe._audiyo_quantized_components = []
         try:
             pipe.enable_sequential_cpu_offload()
             pipe._audiyo_stage_mode = "sequential-cpu-offload"

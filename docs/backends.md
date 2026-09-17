@@ -94,6 +94,12 @@ assume 20 percent headroom over raw weight bytes:
 * low, sequential with the LLM in 8-bit: about 10.3 GB peak.
 * minimal, sequential with the LLM in 4-bit: about 6 GB peak.
 
+Quantization is opt-in and needs bitsandbytes. It applies to the
+language model on its own after the pipeline loads, never as a
+pipeline-wide flag. Smaller cards also pick it automatically in
+balanced mode. Which pieces got quantized is recorded on the loaded
+pipeline.
+
 One correction to an early sketch: 8 to 10 GB is the 8-bit figure, not
 the 16-bit one. The 8B LLM alone is about 16 GB of weights in bfloat16,
 so 16-bit sequential still peaks near 20 GB. Quantization is opt-in and

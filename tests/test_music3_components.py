@@ -111,6 +111,83 @@ def test_fallback_failure_names_component():
     raise AssertionError("expected CheckpointError")
 
 
+def test_quant_flags_never_reach_pipeline():
+    from audiyo.backends.minimax_music import MinimaxMusicBackend
+
+    captured_pipe = {}
+    captured_lm = {}
+    marker = object()
+
+    class FakePipe:
+        def enable_sequential_cpu_offload(self):
+            pass
+
+    FakePipe.transformer = torch.nn.Linear(4, 4)
+    FakePipe.vocoder = torch.nn.Linear(4, 4)
+    FakePipe.language_model = torch.nn.Linear(4, 4)
+    FakePipe.tokenizer = torch.nn.Linear(4, 4)
+    FakePipe.rvq_depth_decoder = torch.nn.Linear(4, 4)
+
+    def fake_pipeline_from_pretrained(checkpoint, **kw):
+        captured_pipe.update(kw)
+        return FakePipe()
+
+    def fake_lm_from_pretrained(repo, **kw):
+        captured_lm.update(kw)
+        captured_lm["repo"] = repo
+        return marker
+
+    fake_transformers = types.ModuleType("transformers")
+    fake_transformers.Qwen3ForCausalLM = types.SimpleNamespace(
+        from_pretrained=staticmethod(fake_lm_from_pretrained)
+    )
+    fake_diffusers = types.ModuleType("diffusers")
+    fake_diffusers.MiniMaxMusic3ModularPipeline = types.SimpleNamespace(
+        from_pretrained=staticmethod(fake_pipeline_from_pretrained)
+    )
+    sys.modules["transformers"] = fake_transformers
+    sys.modules["diffusers"] = fake_diffusers
+    sys.modules["bitsandbytes"] = types.ModuleType("bitsandbytes")
+    try:
+        pipe = MinimaxMusicBackend().load("MiniMaxAI/MiniMax-Music3", llm_quant="int8")
+    finally:
+        _clear_fake_stack()
+        sys.modules.pop("bitsandbytes", None)
+    assert "load_in_8bit" not in captured_pipe
+    assert "load_in_4bit" not in captured_pipe
+    assert captured_lm["load_in_8bit"] is True
+    assert captured_lm["subfolder"] == "language_model"
+    assert captured_lm["device_map"] == "auto"
+    assert captured_lm["repo"] == "MiniMaxAI/MiniMax-Music3"
+    assert pipe.language_model is marker
+    assert pipe._audiyo_quantized_components == ["language_model"]
+
+
+def test_balanced_sends_no_quant_config_to_pipeline():
+    from audiyo.backends.minimax_music import MinimaxMusicBackend
+
+    captured_pipe = {}
+    store = {}
+
+    def fake_pipeline_from_pretrained(checkpoint, **kw):
+        captured_pipe.update(kw)
+        return _fake_pipe_class(store)()
+
+    fake_diffusers = types.ModuleType("diffusers")
+    fake_diffusers.MiniMaxMusic3ModularPipeline = types.SimpleNamespace(
+        from_pretrained=staticmethod(fake_pipeline_from_pretrained)
+    )
+    sys.modules["diffusers"] = fake_diffusers
+    try:
+        pipe = MinimaxMusicBackend().load("MiniMaxAI/MiniMax-Music3", memory_mode="balanced")
+    finally:
+        _clear_fake_stack()
+    assert "load_in_8bit" not in captured_pipe
+    assert "load_in_4bit" not in captured_pipe
+    assert pipe._audiyo_quantized_components == []
+    assert pipe._audiyo_fallback_components == []
+
+
 def test_music_call_kwargs_shape():
     from audiyo.errors import ValidationError
     from audiyo.inference import build_music_call_kwargs

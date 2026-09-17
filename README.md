@@ -183,4 +183,4 @@ Audiyo code is Apache License 2.0, see LICENSE. Model weights use the Stability 
 
 ## Status
 
-Version 0.3.2: same easy generation and checks, plus the GGUF path now points at `TeamAudiyo/Minimax-Music3-GGUF`, missing music pieces load from the base repo with names attached, and each backend only gets arguments it understands. Fast tests run without any checkpoint.
+Version 0.3.3: fixes the music loader sending a config flag the pipeline does not take. Quantization now applies to the language model on its own after loading. Fast tests run without any checkpoint.
