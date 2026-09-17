@@ -11,6 +11,9 @@ __all__ = ["check_negative_prompt_supported", "describe_backend", "detect_model_
 
 def pipeline_max_duration(pipeline) -> float:
     try:
+        name = type(pipeline).__name__
+        if "MiniMax" in name or hasattr(pipeline, "language_model"):
+            return 360.0
         sample_size = float(pipeline.transformer.config.sample_size)
         hop = float(pipeline.vae.config.hop_length) if hasattr(pipeline.vae.config, "hop_length") else 2048.0
         sr = float(pipeline.vae.config.sampling_rate) if hasattr(pipeline.vae.config, "sampling_rate") else 44100.0

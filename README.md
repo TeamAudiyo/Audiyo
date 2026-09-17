@@ -7,9 +7,9 @@ It wraps the Diffusers pipelines with input checks, seeded output, memory preset
 Supported checkpoints:
 
 * `stabilityai/stable-audio-open-1.0` (stereo, 44100 Hz, up to about 47 seconds).
-* `TeamAudiyo/MM3-GGUF` — MiniMax-Music3 with quantized GGUF DiT weights
+* `TeamAudiyo/Minimax-Music3-GGUF` — MiniMax-Music3 with quantized GGUF DiT weights
   (default `q4_k_m`, 1.49 GB, peak VRAM under 4.5 GB with sequential offloading).
-* `TeamAudiyo/MM3-GGUF:MiniMax-Music3-Q4_K_M.gguf` — pick a specific quant
+* `TeamAudiyo/Minimax-Music3-GGUF:MiniMax-Music3-Q4_K_M.gguf` — pick a specific quant
   (`q3_k_m`, `q4_k_m`, `q5_k_m`, `q6_k`, `q8_0`, `f16`).
 * `MiniMaxAI/MiniMax-Music3` — full bf16 checkpoint (needs diffusers>=0.40
   and a CUDA GPU; ~20.6 GB sequential, ~10.3 GB with the LLM in 8-bit).
@@ -73,7 +73,7 @@ Songs from lyrics plus a description, with the DiT loaded from quantized GGUF we
 from audiyo import AudioModel
 
 model = AudioModel.from_pretrained(
-    "TeamAudiyo/MM3-GGUF",
+    "TeamAudiyo/Minimax-Music3-GGUF",
     device="auto",
     memory_mode="balanced",
 )
@@ -183,4 +183,4 @@ Audiyo code is Apache License 2.0, see LICENSE. Model weights use the Stability 
 
 ## Status
 
-Version 0.3.1: same solid base, plus easier generation controls, quick quality checks, and a simple local web demo. Full Music3 generation still needs diffusers>=0.40 and a CUDA GPU. Fast tests run without any checkpoint.
+Version 0.3.2: same easy generation and checks, plus the GGUF path now points at `TeamAudiyo/Minimax-Music3-GGUF`, missing music pieces load from the base repo with names attached, and each backend only gets arguments it understands. Fast tests run without any checkpoint.

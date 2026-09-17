@@ -9,7 +9,8 @@ Current registry:
 * `stable-audio` — Stable Audio Open, the only runnable backend.
 * `testkit` — the tiny diffusion stand-in, for offline tests.
 * `minimax-music` — Minimax-Music3, loads through
-  `MiniMaxMusic3ModularPipeline` with GGUF DiT quants plus
+  `MiniMaxMusic3ModularPipeline` with GGUF DiT quants from
+  `TeamAudiyo/Minimax-Music3-GGUF` plus
   sequential stage offloading. Default `q4_k_m` peaks under 4.5 GB.
 
 Adding a backend means a new file with a `Backend` subclass, one
@@ -34,7 +35,7 @@ their line. Songs run up to about six minutes.
 Two things to know before running it. Diffusers 0.40.0 or newer is
 required (it ships `MiniMaxMusic3ModularPipeline`, which the old
 pinned 0.39.0 lacked), and CUDA is needed for real generation.
-The DiT can come from `TeamAudiyo/MM3-GGUF` quantized GGUF weights
+The DiT can come from `TeamAudiyo/Minimax-Music3-GGUF` quantized GGUF weights
 (default `q4_k_m`, 1.49 GB) for a peak under 4.5 GB, or from the
 bf16 checkpoint (peak near 20.6 GB sequential, 10.3 GB with the
 LLM in 8-bit). `load` applies
@@ -47,6 +48,18 @@ parsing with the real drop rule plus deterministic stereo output.
 One honest discrepancy: the repo advertises 32 kHz output while the
 diffusers vocoder renders native 44.1 kHz and leaves resampling to the
 caller. The proxy mirrors the 44.1 kHz side.
+
+GGUF splits sometimes ship without the tokenizer, language model, or
+depth decoder. When any of those come back empty, the loader pulls just
+that piece from the matching subfolder in `MiniMaxAI/MiniMax-Music3`
+and says which pieces it filled in. If a piece cannot load, it fails
+with the piece named instead of generating wrong audio.
+
+Each backend only gets the arguments it understands. Stable Audio keeps
+its timing window, guidance, and negative prompt. Music gets prompt,
+lyrics, length, steps, and seed, and runs its built-in guidance. Lyrics
+are required for music, clips always start at zero, and one call makes
+one clip. Songs run up to six minutes.
 
 Revisit on a GPU machine with newer diffusers. LoRA targets and the
 training objective stay marked unverified until an official fine-tune

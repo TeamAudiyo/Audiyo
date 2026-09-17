@@ -39,6 +39,8 @@ def test_music_sequential_offload_path():
         language_model = torch.nn.Linear(4, 4)
         transformer = torch.nn.Linear(4, 4)
         vocoder = torch.nn.Linear(4, 4)
+        tokenizer = torch.nn.Linear(4, 4)
+        rvq_depth_decoder = torch.nn.Linear(4, 4)
 
         def enable_sequential_cpu_offload(self):
             made["seq"] = True

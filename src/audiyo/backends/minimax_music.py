@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..config import MM3_GGUF_FILES, MM3_GGUF_REPO, MUSIC3_CHECKPOINT, check_checkpoint
+from ..config import MM3_GGUF_FILES, MM3_GGUF_REPO, MUSIC3_CHECKPOINT, check_checkpoint, is_gguf_checkpoint
 from ..errors import CheckpointError, DependencyError, auth_hint, oom_hint, scrub_text
 from .base import Backend, BackendInfo, require_backend
 from .mm3_gguf import DEFAULT_QUANT, GGUF_QUANTS, GGUF_REPO, estimate_gguf_peak_gb, map_gguf_to_transformer, resolve_gguf_file
+from .music_components import ensure_front_end
 from .music_stages import PRESET_STAGE_PLAN, StageOffloader, estimate_plan
 
 
@@ -42,7 +43,7 @@ class MinimaxMusicBackend(Backend):
         gguf_request = None
         if checkpoint == MM3_GGUF_REPO:
             gguf_request = GGUF_QUANTS[DEFAULT_QUANT]["file"]
-        elif checkpoint.startswith(MM3_GGUF_REPO + ":"):
+        elif is_gguf_checkpoint(checkpoint):
             gguf_request = checkpoint.split(":", 1)[1]
             if gguf_request not in MM3_GGUF_FILES:
                 from ..errors import ValidationError
@@ -98,6 +99,7 @@ class MinimaxMusicBackend(Backend):
         if token is not None:
             load_kwargs["token"] = token
         want = str(llm_quant).lower()
+        quant_flags: dict = {}
         if want in ("int8", "int4", "8bit", "4bit"):
             try:
                 import bitsandbytes as _bnb
@@ -107,8 +109,10 @@ class MinimaxMusicBackend(Backend):
                 raise DependencyError("mode " + repr(memory_mode) + " needs bitsandbytes.") from exc
             if want in ("int8", "8bit"):
                 load_kwargs["load_in_8bit"] = True
+                quant_flags["load_in_8bit"] = True
             else:
                 load_kwargs["load_in_4bit"] = True
+                quant_flags["load_in_4bit"] = True
         try:
             pipe = MiniMaxMusic3ModularPipeline.from_pretrained(base_checkpoint, **load_kwargs, **kwargs)
         except Exception as exc:
@@ -119,6 +123,14 @@ class MinimaxMusicBackend(Backend):
             if "out of memory" in lowered:
                 raise oom_hint("loading MiniMax-Music3") from exc
             raise CheckpointError("Could not load " + repr(checkpoint) + ": " + text) from exc
+        try:
+            pipe._audiyo_fallback_components = ensure_front_end(
+                pipe, base_checkpoint, torch_dtype, token, device_map, quant_flags
+            )
+        except CheckpointError:
+            raise
+        except Exception as exc:
+            raise CheckpointError("Component check failed: " + scrub_text(str(exc))[:200]) from exc
         try:
             pipe.enable_sequential_cpu_offload()
             pipe._audiyo_stage_mode = "sequential-cpu-offload"

@@ -168,6 +168,9 @@ class AudioModel:
         if negative_prompt is not None and not check_negative_prompt_supported(self.pipeline):
             raise ValidationError("This backend does not support negative_prompt.")
         active_lyrics = lyrics if lyrics is not None else getattr(self, "_default_lyrics", None)
+        from .config import MUSIC3_CHECKPOINT, is_gguf_checkpoint
+
+        backend_name = "minimax-music" if self.checkpoint == MUSIC3_CHECKPOINT or is_gguf_checkpoint(self.checkpoint) else "stable"
         generator = make_cpu_generator(seed)
         mem_before = _cuda_mem()
         sys_before = _system_mem_gb()
@@ -179,21 +182,23 @@ class AudioModel:
         t0 = time.perf_counter()
         try:
             with torch.inference_mode():
-                call_kwargs: dict = dict(
-                    prompt=cfg.prompt,
-                    audio_end_in_s=cfg.audio_start_in_s + float(cfg.duration_seconds),
-                    audio_start_in_s=cfg.audio_start_in_s,
-                    num_inference_steps=cfg.num_inference_steps,
-                    guidance_scale=cfg.guidance_scale,
-                    negative_prompt=cfg.negative_prompt,
-                    num_waveforms_per_prompt=cfg.num_waveforms_per_prompt,
-                    eta=cfg.eta,
-                    generator=generator,
-                    output_type="pt",
-                )
-                if active_lyrics is not None:
-                    call_kwargs["lyrics"] = active_lyrics
-                    call_kwargs["audio_duration"] = float(cfg.duration_seconds)
+                if backend_name == "minimax-music":
+                    from .inference import build_music_call_kwargs, check_music_limits
+
+                    check_music_limits(cfg.audio_start_in_s, cfg.num_waveforms_per_prompt)
+                    call_kwargs = build_music_call_kwargs(
+                        cfg.prompt,
+                        active_lyrics,
+                        float(cfg.duration_seconds),
+                        cfg.num_inference_steps,
+                        generator,
+                    )
+                else:
+                    from .inference import build_stable_call_kwargs
+
+                    if active_lyrics is not None:
+                        raise ValidationError("lyrics are only supported by the Minimax-Music3 backend.")
+                    call_kwargs = build_stable_call_kwargs(cfg, generator)
                 out = self.pipeline(**call_kwargs)
         except RuntimeError as exc:
             text = str(exc).lower()
@@ -244,6 +249,8 @@ class AudioModel:
             self.checkpoint,
         )
         settings["postfx"] = postfx_applied
+        settings["backend"] = backend_name
+        settings["call_args"] = sorted(call_kwargs)
         result = AudioResult(
             waveform=wav.astype(np.float32),
             sample_rate=SAMPLE_RATE,

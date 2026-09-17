@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .backends.music_stages import estimate_plan
-from .config import MM3_GGUF_REPO, MUSIC3_CHECKPOINT, SUPPORTED_CHECKPOINT, SUPPORTED_CHECKPOINTS
+from .config import MUSIC3_CHECKPOINT, SUPPORTED_CHECKPOINT, SUPPORTED_CHECKPOINTS, is_gguf_checkpoint
 from .errors import ValidationError
 from .memopt import describe_presets
 
@@ -21,9 +21,9 @@ STABLE_AUDIO_REST_GB = {
 
 
 def _is_music_checkpoint(checkpoint: str) -> bool:
-    if checkpoint == MUSIC3_CHECKPOINT or checkpoint == MM3_GGUF_REPO:
+    if checkpoint == MUSIC3_CHECKPOINT:
         return True
-    return checkpoint.startswith(MM3_GGUF_REPO + ":")
+    return is_gguf_checkpoint(checkpoint)
 
 
 def estimate_requirements(checkpoint: str = SUPPORTED_CHECKPOINT, memory_mode: str = "balanced", gpu_vram_gb: float | None = None) -> dict:

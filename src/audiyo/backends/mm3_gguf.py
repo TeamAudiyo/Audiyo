@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-GGUF_REPO = "TeamAudiyo/MM3-GGUF"
+GGUF_REPO = "TeamAudiyo/Minimax-Music3-GGUF"
 
 GGUF_QUANTS = {
     "q3_k_m": {"file": "MiniMax-Music3-Q3_K_M.gguf", "gb": 1.18},

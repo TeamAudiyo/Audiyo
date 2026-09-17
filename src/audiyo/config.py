@@ -7,7 +7,7 @@ from .errors import ValidationError
 
 SUPPORTED_CHECKPOINT = "stabilityai/stable-audio-open-1.0"
 MUSIC3_CHECKPOINT = "MiniMaxAI/MiniMax-Music3"
-MM3_GGUF_REPO = "TeamAudiyo/MM3-GGUF"
+MM3_GGUF_REPO = "TeamAudiyo/Minimax-Music3-GGUF"
 MM3_GGUF_FILES = (
     "MiniMax-Music3-Q3_K_M.gguf",
     "MiniMax-Music3-Q4_K_M.gguf",
@@ -19,6 +19,11 @@ MM3_GGUF_FILES = (
 SUPPORTED_CHECKPOINTS = (SUPPORTED_CHECKPOINT, MUSIC3_CHECKPOINT, MM3_GGUF_REPO) + tuple(
     MM3_GGUF_REPO + ":" + f for f in MM3_GGUF_FILES
 )
+MUSIC3_MAX_DURATION_SECONDS = 360.0
+
+
+def is_gguf_checkpoint(checkpoint: str) -> bool:
+    return checkpoint == MM3_GGUF_REPO or checkpoint.startswith(MM3_GGUF_REPO + ":")
 
 SAMPLE_RATE = 44100
 NUM_CHANNELS = 2

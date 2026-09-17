@@ -9,8 +9,8 @@ import torch
 def test_detect_routes_gguf_checkpoint():
     from audiyo.backends import detect_model_type
 
-    assert detect_model_type("TeamAudiyo/MM3-GGUF") == "minimax-music"
-    assert detect_model_type("TeamAudiyo/MM3-GGUF:MiniMax-Music3-Q4_K_M.gguf") == "minimax-music"
+    assert detect_model_type("TeamAudiyo/Minimax-Music3-GGUF") == "minimax-music"
+    assert detect_model_type("TeamAudiyo/Minimax-Music3-GGUF:MiniMax-Music3-Q4_K_M.gguf") == "minimax-music"
 
 
 def test_gguf_checkpoint_selects_default_file():
@@ -27,6 +27,8 @@ def test_gguf_checkpoint_selects_default_file():
         language_model = torch.nn.Linear(4, 4)
         transformer = torch.nn.Linear(4, 4)
         vocoder = torch.nn.Linear(4, 4)
+        tokenizer = torch.nn.Linear(4, 4)
+        rvq_depth_decoder = torch.nn.Linear(4, 4)
 
         def enable_sequential_cpu_offload(self):
             seen["seq"] = True
@@ -45,7 +47,7 @@ def test_gguf_checkpoint_selects_default_file():
     real_download = _gguf_mod.download_gguf_file
     _gguf_mod.download_gguf_file = lambda repo, filename, token=None: "C:/fake/" + filename
     try:
-        pipe = MinimaxMusicBackend().load("TeamAudiyo/MM3-GGUF")
+        pipe = MinimaxMusicBackend().load("TeamAudiyo/Minimax-Music3-GGUF")
     finally:
         _gguf_mod.download_gguf_file = real_download
         sys.modules.pop("diffusers", None)
@@ -100,6 +102,8 @@ def test_gguf_load_path_sets_quant_and_offload():
         language_model = torch.nn.Linear(4, 4)
         transformer = torch.nn.Linear(4, 4)
         vocoder = torch.nn.Linear(4, 4)
+        tokenizer = torch.nn.Linear(4, 4)
+        rvq_depth_decoder = torch.nn.Linear(4, 4)
 
         def enable_sequential_cpu_offload(self):
             made["seq"] = True
