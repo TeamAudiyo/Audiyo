@@ -141,6 +141,14 @@ def test_quant_flags_never_reach_pipeline():
     fake_transformers.Qwen3ForCausalLM = types.SimpleNamespace(
         from_pretrained=staticmethod(fake_lm_from_pretrained)
     )
+
+    class FakeBitsAndBytesConfig:
+        def __init__(self, **kw):
+            self.kw = kw
+            self.load_in_8bit = kw.get("load_in_8bit", False)
+            self.load_in_4bit = kw.get("load_in_4bit", False)
+
+    fake_transformers.BitsAndBytesConfig = FakeBitsAndBytesConfig
     fake_diffusers = types.ModuleType("diffusers")
     fake_diffusers.MiniMaxMusic3ModularPipeline = types.SimpleNamespace(
         from_pretrained=staticmethod(fake_pipeline_from_pretrained)
@@ -155,7 +163,10 @@ def test_quant_flags_never_reach_pipeline():
         sys.modules.pop("bitsandbytes", None)
     assert "load_in_8bit" not in captured_pipe
     assert "load_in_4bit" not in captured_pipe
-    assert captured_lm["load_in_8bit"] is True
+    assert "load_in_8bit" not in captured_lm
+    assert "load_in_4bit" not in captured_lm
+    assert isinstance(captured_lm["quantization_config"], FakeBitsAndBytesConfig)
+    assert captured_lm["quantization_config"].load_in_8bit is True
     assert captured_lm["subfolder"] == "language_model"
     assert captured_lm["device_map"] == "auto"
     assert captured_lm["repo"] == "MiniMaxAI/MiniMax-Music3"

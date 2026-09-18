@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "audiyo"
-version = "0.3.3"
+version = "0.3.4"
 description = "Memory-efficient text-to-audio and song generation with LoRA fine-tuning for Stable Audio Open and Minimax-Music3"
 readme = "README.md"
 requires-python = ">=3.10"

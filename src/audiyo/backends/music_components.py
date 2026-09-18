@@ -32,7 +32,17 @@ def load_fallback_component(name: str, base_checkpoint: str, torch_dtype=None, t
         kwargs = {}
         if torch_dtype is not None:
             kwargs["torch_dtype"] = torch_dtype
-        kwargs.update(flags)
+        if flags.get("load_in_8bit") or flags.get("load_in_4bit"):
+            try:
+                from transformers import BitsAndBytesConfig
+            except ImportError as exc:
+                from ..errors import DependencyError
+
+                raise DependencyError("Quantized loads need a transformers version with BitsAndBytesConfig.") from exc
+            if flags.get("load_in_8bit"):
+                kwargs["quantization_config"] = BitsAndBytesConfig(load_in_8bit=True)
+            else:
+                kwargs["quantization_config"] = BitsAndBytesConfig(load_in_4bit=True)
         if device_map is not None:
             kwargs["device_map"] = device_map
         if token is not None:
