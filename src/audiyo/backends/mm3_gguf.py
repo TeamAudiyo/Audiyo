@@ -15,6 +15,26 @@ DEFAULT_QUANT = "q4_k_m"
 
 GGUF_PEAK_VRAM_GB = 4.5
 
+GGUF_COMPONENT_VRAM_GB = {
+    "transformer": (4.5, 5.0),
+    "text_encoder": (1.5, 2.0),
+    "vae_decoder": (1.0, 2.0),
+    "cuda_overhead": (1.5, 1.5),
+}
+
+GGUF_TOTAL_VRAM_GB = (9.0, 10.0)
+
+GGUF_SYSTEM_RAM_GB = (14.0, 16.0)
+
+
+def gguf_breakdown() -> dict:
+    return {
+        "components_gb": {k: list(v) for k, v in GGUF_COMPONENT_VRAM_GB.items()},
+        "total_vram_gb": list(GGUF_TOTAL_VRAM_GB),
+        "system_ram_gb": list(GGUF_SYSTEM_RAM_GB),
+        "fits": "15 GB card with nothing else major running",
+    }
+
 
 def resolve_gguf_file(quant=None, gguf_file=None):
     if gguf_file is not None:

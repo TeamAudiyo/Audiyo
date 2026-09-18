@@ -8,7 +8,8 @@ Supported checkpoints:
 
 * `stabilityai/stable-audio-open-1.0` (stereo, 44100 Hz, up to about 47 seconds).
 * `TeamAudiyo/Minimax-Music3-GGUF` — MiniMax-Music3 with quantized GGUF DiT weights
-  (default `q4_k_m`, 1.49 GB, peak VRAM under 4.5 GB with sequential offloading).
+  (default `q4_k_m`, 1.49 GB of weights, about 9 to 10 GB free VRAM and
+  14 to 16 GB system RAM, fits a 15 GB card).
 * `TeamAudiyo/Minimax-Music3-GGUF:MiniMax-Music3-Q4_K_M.gguf` — pick a specific quant
   (`q3_k_m`, `q4_k_m`, `q5_k_m`, `q6_k`, `q8_0`, `f16`).
 * `MiniMaxAI/MiniMax-Music3` — full bf16 checkpoint (needs diffusers>=0.40

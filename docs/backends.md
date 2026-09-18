@@ -36,9 +36,13 @@ Two things to know before running it. Diffusers 0.40.0 or newer is
 required (it ships `MiniMaxMusic3ModularPipeline`, which the old
 pinned 0.39.0 lacked), and CUDA is needed for real generation.
 The DiT can come from `TeamAudiyo/Minimax-Music3-GGUF` quantized GGUF weights
-(default `q4_k_m`, 1.49 GB) for a peak under 4.5 GB, or from the
-bf16 checkpoint (peak near 20.6 GB sequential, 10.3 GB with the
-LLM in 8-bit). `load` applies
+(default `q4_k_m`, 1.49 GB of weights). The full GGUF path wants about
+9 to 10 GB of free VRAM and 14 to 16 GB of system RAM, which fits a
+15 GB card with nothing else major running. Rough split: transformer
+4.5 to 5 GB, text encoder 1.5 to 2 GB, decoder plus pipeline 1 to 2 GB,
+and about 1.5 GB of working overhead. The bf16 checkpoint instead peaks
+near 20.6 GB sequential, 10.3 GB with the
+LLM in 8-bit. `load` applies
 `enable_sequential_cpu_offload()` so the 8B LLM, DiT, and
 vocoder swap in and out of GPU RAM sequentially, with the Audiyo
 stage offloader as fallback. `src/audiyo/testkit/music.py` still

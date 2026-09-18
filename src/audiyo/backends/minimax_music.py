@@ -5,7 +5,7 @@ from typing import Any
 from ..config import MM3_GGUF_FILES, MM3_GGUF_REPO, MUSIC3_CHECKPOINT, check_checkpoint, is_gguf_checkpoint
 from ..errors import CheckpointError, DependencyError, auth_hint, oom_hint, scrub_text
 from .base import Backend, BackendInfo, require_backend
-from .mm3_gguf import DEFAULT_QUANT, GGUF_QUANTS, GGUF_REPO, estimate_gguf_peak_gb, map_gguf_to_transformer, resolve_gguf_file
+from .mm3_gguf import DEFAULT_QUANT, GGUF_QUANTS, GGUF_REPO, GGUF_SYSTEM_RAM_GB, GGUF_TOTAL_VRAM_GB, estimate_gguf_peak_gb, gguf_breakdown, map_gguf_to_transformer, resolve_gguf_file
 from .music_components import ensure_front_end
 from .music_stages import PRESET_STAGE_PLAN, StageOffloader, estimate_plan
 
@@ -30,6 +30,9 @@ class MinimaxMusicBackend(Backend):
             "lora_targets": "unverified",
             "stages": "structure plus flow plus vocoder, sequential with one resident",
             "peak_estimates_gb": {"bfloat16": estimate_plan("bfloat16")["peak_gb"], "int8_llm": estimate_plan("int8")["peak_gb"], "gguf_q4_k_m": estimate_gguf_peak_gb("q4_k_m")},
+            "gguf_breakdown": gguf_breakdown(),
+            "gguf_total_vram_gb": list(GGUF_TOTAL_VRAM_GB),
+            "gguf_system_ram_gb": list(GGUF_SYSTEM_RAM_GB),
             "gguf_repo": GGUF_REPO,
             "gguf_quants": sorted(GGUF_QUANTS),
             "default_quant": DEFAULT_QUANT,

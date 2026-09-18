@@ -33,23 +33,39 @@ def estimate_requirements(checkpoint: str = SUPPORTED_CHECKPOINT, memory_mode: s
     if memory_mode not in presets:
         raise ValidationError("unknown memory_mode " + repr(memory_mode) + ".")
     if _is_music_checkpoint(checkpoint):
-        plan = estimate_plan("bfloat16")
-        if memory_mode == "low":
-            plan = estimate_plan("int8")
-        if memory_mode == "minimal":
-            plan = estimate_plan("int4")
-        peak = float(plan["peak_gb"])
-        detail = {
-            "backend": "minimax-music",
-            "checkpoint": checkpoint,
-            "memory_mode": memory_mode,
-            "peak_gb": peak,
-            "stages_gb": plan["stages"],
-            "llm_dtype": plan["llm_dtype"],
-            "resident": "one stage at a time" if memory_mode != "performance" else "all stages",
-            "source": "computed from published parameter counts with headroom",
-            "note": "Estimate only. Real use moves with length, steps, and driver behavior.",
-        }
+        if is_gguf_checkpoint(checkpoint):
+            from .backends.mm3_gguf import gguf_breakdown
+
+            breakdown = gguf_breakdown()
+            peak = float(breakdown["total_vram_gb"][1])
+            detail = {
+                "backend": "minimax-music",
+                "checkpoint": checkpoint,
+                "memory_mode": memory_mode,
+                "peak_gb": peak,
+                "breakdown_gb": breakdown,
+                "resident": "one stage at a time" if memory_mode != "performance" else "all stages",
+                "source": "measured figure for the GGUF path on a 15 GB card",
+                "note": "Needs 9 to 10 GB free VRAM and 14 to 16 GB system RAM. Real use moves with length and steps.",
+            }
+        else:
+            plan = estimate_plan("bfloat16")
+            if memory_mode == "low":
+                plan = estimate_plan("int8")
+            if memory_mode == "minimal":
+                plan = estimate_plan("int4")
+            peak = float(plan["peak_gb"])
+            detail = {
+                "backend": "minimax-music",
+                "checkpoint": checkpoint,
+                "memory_mode": memory_mode,
+                "peak_gb": peak,
+                "stages_gb": plan["stages"],
+                "llm_dtype": plan["llm_dtype"],
+                "resident": "one stage at a time" if memory_mode != "performance" else "all stages",
+                "source": "computed from published parameter counts with headroom",
+                "note": "Estimate only. Real use moves with length, steps, and driver behavior.",
+            }
     else:
         peak = float(STABLE_AUDIO_PEAK_GB[memory_mode])
         detail = {

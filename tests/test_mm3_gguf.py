@@ -90,6 +90,24 @@ def test_gguf_peak_under_45():
     assert estimate_gguf_peak_gb("q4_k_m") <= 4.5
 
 
+def test_gguf_breakdown_totals():
+    from audiyo.backends.mm3_gguf import gguf_breakdown
+
+    breakdown = gguf_breakdown()
+    assert breakdown["total_vram_gb"] == [9.0, 10.0]
+    assert breakdown["system_ram_gb"] == [14.0, 16.0]
+    assert breakdown["components_gb"]["transformer"] == [4.5, 5.0]
+
+
+def test_gguf_estimate_reports_breakdown():
+    from audiyo.estimate import estimate_requirements
+
+    detail = estimate_requirements("TeamAudiyo/Minimax-Music3-GGUF", "balanced", gpu_vram_gb=15)
+    assert detail["peak_gb"] == 10.0
+    assert detail["breakdown_gb"]["total_vram_gb"] == [9.0, 10.0]
+    assert detail["verdict"] == "fits"
+
+
 def test_gguf_load_path_sets_quant_and_offload():
     import sys
     import types
