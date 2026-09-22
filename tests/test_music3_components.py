@@ -247,6 +247,33 @@ def test_pipeline_max_duration_music():
     assert pipeline_max_duration(object()) == 47.55
 
 
+def test_torchvision_check_disabled_before_diffusers():
+    import importlib.util
+
+    from audiyo.backends.minimax_music import disable_torchvision_check
+
+    real_find_spec = importlib.util.find_spec
+    had_flag = getattr(disable_torchvision_check, "_done", False)
+    try:
+        assert disable_torchvision_check() is True
+        assert importlib.util.find_spec("torchvision") is None
+        assert importlib.util.find_spec("torchvision.transforms") is None
+        assert importlib.util.find_spec("torch") is not None
+        from transformers.utils.import_utils import is_torchvision_available
+
+        assert is_torchvision_available() is False
+    finally:
+        importlib.util.find_spec = real_find_spec
+        if not had_flag and hasattr(disable_torchvision_check, "_done"):
+            del disable_torchvision_check._done
+        try:
+            from transformers.utils.import_utils import is_torchvision_available as _check
+
+            _check.cache_clear()
+        except Exception:
+            pass
+
+
 def test_generate_routes_music_args():
     from audiyo.model import AudioModel
 

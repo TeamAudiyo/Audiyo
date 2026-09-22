@@ -10,6 +10,33 @@ from .music_components import ensure_front_end
 from .music_stages import PRESET_STAGE_PLAN, StageOffloader, estimate_plan
 
 
+def disable_torchvision_check() -> bool:
+    import importlib.util
+    import sys
+
+    if getattr(disable_torchvision_check, "_done", False):
+        return True
+    real_find_spec = importlib.util.find_spec
+
+    def find_spec_without_torchvision(name, *args, **kwargs):
+        if name == "torchvision" or str(name).startswith("torchvision."):
+            return None
+        return real_find_spec(name, *args, **kwargs)
+
+    importlib.util.find_spec = find_spec_without_torchvision
+    module = sys.modules.get("transformers.utils.import_utils")
+    if module is not None:
+        for func_name in ("is_torchvision_available", "is_torchvision_v2_available", "is_vision_available"):
+            clearer = getattr(getattr(module, func_name, None), "cache_clear", None)
+            if callable(clearer):
+                try:
+                    clearer()
+                except Exception:
+                    pass
+    disable_torchvision_check._done = True
+    return True
+
+
 class MinimaxMusicBackend(Backend):
     name = "minimax-music"
     info = BackendInfo(
@@ -41,6 +68,7 @@ class MinimaxMusicBackend(Backend):
     )
 
     def load(self, checkpoint: str, **kwargs: Any) -> Any:
+        disable_torchvision_check()
         require_backend()
         check_checkpoint(checkpoint)
         gguf_request = None

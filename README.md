@@ -184,4 +184,4 @@ Audiyo code is Apache License 2.0, see LICENSE. Model weights use the Stability 
 
 ## Status
 
-Version 0.3.4: fixes quantized music loads on current transformers by using a quantization config instead of a bare flag. Fast tests run without any checkpoint.
+Version 0.3.5: the music loader now switches torchvision checks off before diffusers loads, so broken vision installs cannot break audio. Fast tests run without any checkpoint.
